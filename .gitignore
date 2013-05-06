@@ -39,3 +39,7 @@ dist/
 nbdist/
 nbactions.xml
 nb-configuration.xml
+
+lib/
+*.jks
+*.cer
