@@ -18,7 +18,7 @@ public class ClientTest {
     public ClientTest(String hostname, int port) {
 
         try {
-            System.setProperty("javax.net.ssl.trustStore", "client.jks");
+            System.setProperty("javax.net.ssl.trustStore", "LTClient.jks");
             System.setProperty("javax.net.ssl.trustStorePassword", "ltpass");
             SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
             socket = (SSLSocket) factory.createSocket(hostname, port);
@@ -26,8 +26,7 @@ public class ClientTest {
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             askUser();
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
+        } catch (IOException e) {
             e.printStackTrace();
         } finally {
             closeConnections();
@@ -41,8 +40,7 @@ public class ClientTest {
             out.close();
             in.close();
             socket.close();
-        } catch (Exception e) {
-            // TODO Auto-generated catch block
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
@@ -58,7 +56,7 @@ public class ClientTest {
                 String message = userInput.nextLine();
                 out.println(message);
                 System.out.println(in.readLine());
-            } catch (Exception e) {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
@@ -66,7 +64,7 @@ public class ClientTest {
     }
     
     public static void main(String[] args) {
-        
+        ClientTest ct = new ClientTest(args[0], Integer.parseInt(args[1]));
     }
 
 }
