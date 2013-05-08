@@ -82,7 +82,7 @@ public class LTServer {
     
     public void addUser(User u) throws IOException {
         if (allUsers.containsKey(u.getID())) {
-            //No concurrent login
+            //TODO: No concurrent login
             u.getOutputWriter().println("That user is already logged in!");
             u.close();
         } else {

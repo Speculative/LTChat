@@ -43,3 +43,4 @@ nb-configuration.xml
 lib/
 *.jks
 *.cer
+*.db
