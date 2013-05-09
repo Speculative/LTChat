@@ -6,15 +6,13 @@ package com.ltchat.client;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.net.ssl.HttpsURLConnection;
+import java.util.TimerTask;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.swing.plaf.basic.BasicPasswordFieldUI;
-import org.jasypt.util.password.BasicPasswordEncryptor;
 
 /**
  *
@@ -22,26 +20,28 @@ import org.jasypt.util.password.BasicPasswordEncryptor;
  */
 public class SSLSocketClient {
 
-    private SSLSocket socket;
-    private PrintWriter out;
-    private Scanner in;
+    private static SSLSocket socket;
+    private static PrintWriter out;
+    private static Scanner in;
 
-    public SSLSocketClient(String hostname, int port) {
-        SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory();
-        System.out.println("Creating a SSL Socket for " + hostname
-                + "on port " + port + ".");
+//    static {
+//        String hostname = GUI.getAddress();
+//        int port = GUI.getPort();
+//        SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory();
+//        System.out.println("Creating a SSL Socket for " + hostname
+//                + "on port " + port + ".");
+//
+//        try {
+//            socket = (SSLSocket) factory.createSocket(hostname, port);
+//            socket.startHandshake();
+//            out = new PrintWriter(socket.getOutputStream());
+//            in = new Scanner(socket.getInputStream());
+//        } catch (IOException ex) {
+//            System.out.println("IO Exception in creating SSL socket.");
+//        }
+//    }
 
-        try {
-            socket = (SSLSocket) factory.createSocket(hostname, port);
-            socket.startHandshake();
-            out = new PrintWriter(socket.getOutputStream());
-            in = new Scanner(socket.getInputStream());
-        } catch (IOException ex) {
-            System.out.println("IO Exception in creating SSL socket.");
-        }
-    }
-    
-    private void closeConnections() {
+    private static void closeConnections() {
         try {
             socket.close();
             out.close();
@@ -52,27 +52,70 @@ public class SSLSocketClient {
         }
     }
     
-    public boolean login(String username, String password) {
-        BasicPasswordEncryptor encryptor = new BasicPasswordEncryptor();
-        String encrypt = encryptor.encryptPassword(password);
-        out.println("LOGIN`" + username + "`" + encrypt);
-        return in.nextBoolean();
+    private static String genSalt() {
+        final int SALTLENGTH = 32;
+        byte[] salt = null;
+        try {
+            salt = SecureRandom.getInstance("SHA1PRNG").generateSeed(SALTLENGTH);
+        } catch (NoSuchAlgorithmException ex) {
+            System.out.println("Check genSalt() algorithm.");
+        }
+        return new String(salt);
     }
     
-    public boolean register(String username, String password) {
-        BasicPasswordEncryptor encryptor = new BasicPasswordEncryptor();
-        String encrypt = encryptor.encryptPassword(password);
-        out.println("REGISTER`" + username + "`" + encrypt);
-        return in.nextBoolean();
+    private static String requestSalt() {
+        out.println("REQSALT`" + GUI.getUser());
+        return in.nextLine();
     }
     
-    public boolean addContact(String username) {
+    private static String hash(String password, String salt) {
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("SHA1");
+            String salted = password + salt;
+            md.update(salted.getBytes());
+        } catch (NoSuchAlgorithmException ex) {
+            System.out.println("Check hash() algorithm.");
+        }
+        return new String(md.digest());
+    }
+
+    public static boolean login(String username, String password) {
+        String salt = requestSalt();
+        String encrypt = hash(password, salt);
+        out.println("LOGIN`" + username + "`" + encrypt + "`" + salt);
+        return in.nextBoolean();
+    }
+
+    public static boolean register(String username, String password) {
+        String salt = requestSalt();
+        String encrypt = hash(password, salt);
+        out.println("REGISTER`" + username + "`" + encrypt + "`" + salt);
+        return in.nextBoolean();
+    }
+
+    public static boolean addContact(String username) {
         out.println("ADDCONTACT`" + username);
         return in.nextBoolean();
     }
-    
-    public boolean joinChat(String room) {
+
+    public static boolean joinChat(String room) {
         out.println("JOIN`" + room);
         return in.nextBoolean();
+    }
+    
+    public static boolean sendMessage(String message, String userId) {
+        out.println("MESSAGE`" + userId + "`" + message);
+        return in.nextBoolean();
+    }
+    
+    public static String requestContactUpdate() {
+        out.println("UPCONT`" + GUI.getUser());
+        return in.nextLine();
+    }
+    
+    public static String requestChatroomUpdate() {
+        out.println("UPROOM`");
+        return in.nextLine();
     }
 }

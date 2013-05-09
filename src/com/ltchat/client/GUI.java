@@ -4,6 +4,10 @@
  */
 package com.ltchat.client;
 
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.swing.JOptionPane;
 import javax.swing.ListSelectionModel;
 
@@ -18,11 +22,12 @@ public class GUI extends javax.swing.JFrame {
      */
     public GUI() {
         initComponents();
-        client = new SSLSocketClient("ltchatish.com", 4454);
-        loginPanel.setVisible(true);
+        loginPanel.setVisible(false);
         registerPanel.setVisible(false);
-        mainPanel.setVisible(false);
+        mainPanel.setVisible(true);
         mainChatroomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        Timer timer = new Timer();
+        timer.schedule(updateFields, 10000);
     }
 
     /**
@@ -34,6 +39,7 @@ public class GUI extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        jTextArea1 = new javax.swing.JTextArea();
         loginPanel = new javax.swing.JPanel();
         loginUsernameTextField = new javax.swing.JTextField();
         loginPasswordTextfield = new javax.swing.JTextField();
@@ -55,6 +61,9 @@ public class GUI extends javax.swing.JFrame {
         mainContactScrollPane = new javax.swing.JScrollPane();
         mainContactTextArea = new javax.swing.JTextArea();
         mainAddContactButton = new javax.swing.JButton();
+
+        jTextArea1.setColumns(20);
+        jTextArea1.setRows(5);
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -243,6 +252,9 @@ public class GUI extends javax.swing.JFrame {
                 .addContainerGap()
                 .addGroup(mainPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(mainPanelLayout.createSequentialGroup()
+                        .addComponent(mainChatTabbedPane)
+                        .addContainerGap())
+                    .addGroup(mainPanelLayout.createSequentialGroup()
                         .addComponent(mainChatroomScrollPane, javax.swing.GroupLayout.PREFERRED_SIZE, 317, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(mainJoinChatButton)
@@ -250,10 +262,7 @@ public class GUI extends javax.swing.JFrame {
                         .addComponent(mainContactScrollPane, javax.swing.GroupLayout.DEFAULT_SIZE, 247, Short.MAX_VALUE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addComponent(mainAddContactButton)
-                        .addGap(6, 6, 6))
-                    .addGroup(mainPanelLayout.createSequentialGroup()
-                        .addComponent(mainChatTabbedPane)
-                        .addContainerGap())))
+                        .addGap(6, 6, 6))))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -297,12 +306,13 @@ public class GUI extends javax.swing.JFrame {
     private void loginButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loginButtonActionPerformed
         String username = loginUsernameTextField.getText();
         String password = loginPasswordTextfield.getText();
-        boolean allow = client.login(username, password);
+        boolean allow = SSLSocketClient.login(username, password);
         if (allow) {
             loginPanel.setVisible(false);
             loginUsernameTextField.setText("Username");
             loginPasswordTextfield.setText("Password");
             mainPanel.setVisible(true);
+            user = username;
         } else {
             JOptionPane.showMessageDialog(loginPanel,
                     "Your username or password was incorrect.",
@@ -336,6 +346,7 @@ public class GUI extends javax.swing.JFrame {
     }//GEN-LAST:event_registerRePasswordTextFieldMouseClicked
 
     private void registerButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_registerButtonActionPerformed
+        //Passwords do not match.
         if (!registerPasswordTextField.getText().equals(
                 registerRePasswordTextField.getText())) {
             JOptionPane.showMessageDialog(registerPanel,
@@ -346,10 +357,17 @@ public class GUI extends javax.swing.JFrame {
             registerRePasswordTextField.setText("Re-enter Password");
             return;
         }
-
+        //Checking for empty usernames or passwords.
         String username = registerUsernameTextField.getText();
         String password = registerPasswordTextField.getText();
-        if (username.equalsIgnoreCase("username")) {
+        if (username == null || username.isEmpty() || password == null
+                || password.isEmpty()) {
+            JOptionPane.showMessageDialog(registerPanel,
+                    "Your username or password cannot be blank.",
+                    "Error: Bad Username or Password",
+                    JOptionPane.ERROR_MESSAGE);
+        } //If user did not click on the textbox.
+        else if (username.equalsIgnoreCase("username")) {
             JOptionPane.showMessageDialog(registerPanel,
                     "Your username may not be \"username\".",
                     "Error: Bad Username",
@@ -365,8 +383,30 @@ public class GUI extends javax.swing.JFrame {
             registerPasswordTextField.setText("Password");
             registerRePasswordTextField.setText("Re-enter Password");
         }
-
-        boolean allow = client.register(username, password);
+        //Checking username format.
+        Pattern pattern = Pattern.compile("^[a-zA-Z0-9_-]{3,15}$");
+        Matcher matcher = pattern.matcher(username);
+        if (!matcher.matches()) {
+            JOptionPane.showMessageDialog(registerPanel,
+                    "Your username cannot have special characters and must"
+                    + " be from 3 to 15 characters long.");
+            registerUsernameTextField.setText("Username");
+            registerPasswordTextField.setText("Password");
+            registerRePasswordTextField.setText("Re-enter Password");
+        }
+        //Checking password format.
+        pattern = Pattern.compile("(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{6,20}");
+        matcher = pattern.matcher(password);
+        if (!matcher.matches()) {
+            JOptionPane.showMessageDialog(registerPanel,
+                    "Your password must (and can only) contain lower case,"
+                    + " upper case, numbers, and a special character"
+                    + " (!@#$%^&*).");
+            registerPasswordTextField.setText("Password");
+            registerRePasswordTextField.setText("Re-enter Password");
+        }
+        //Registering
+        boolean allow = SSLSocketClient.register(username, password);
         if (allow) {
             JOptionPane.showMessageDialog(loginPanel,
                     "You have successfully registered as " + username + ".",
@@ -377,7 +417,7 @@ public class GUI extends javax.swing.JFrame {
             registerPasswordTextField.setText("Password");
             registerRePasswordTextField.setText("Re-enter Password");
             mainPanel.setVisible(true);
-            
+
         } else {
             JOptionPane.showMessageDialog(loginPanel,
                     "Your registration has failed."
@@ -403,30 +443,65 @@ public class GUI extends javax.swing.JFrame {
                 "Please input friends exact id.",
                 "Add Friend",
                 JOptionPane.QUESTION_MESSAGE);
-       boolean success = client.addContact(id);
-       if (success) {
-           JOptionPane.showMessageDialog(mainPanel,
-                   "Your contact has been added.",
-                   "Contact Added",
-                   JOptionPane.INFORMATION_MESSAGE);
-       } else {
-           JOptionPane.showMessageDialog(rootPane,
-                   "No contact with this name found. Please try again.",
-                   "Contact Not Added",
-                   JOptionPane.ERROR_MESSAGE);
-       }
+        boolean success = SSLSocketClient.addContact(id);
+        if (success) {
+            JOptionPane.showMessageDialog(mainPanel,
+                    "Your contact has been added.",
+                    "Contact Added",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(rootPane,
+                    "No contact with this name found. Please try again.",
+                    "Contact Not Added",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }//GEN-LAST:event_mainAddContactButtonActionPerformed
 
     private void mainJoinChatButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mainJoinChatButtonActionPerformed
         String room = (String) mainChatroomList.getSelectedValue();
-        client.joinChat(room);
-        //TODO Rooms GUI
+        //if (SSLSocketClient.joinChat(room)) {
+            ChatTab chatroomPanel = new ChatTab();
+            mainChatTabbedPane.addTab(room, chatroomPanel);
+//        } else {
+//            JOptionPane.showMessageDialog(registerPanel,
+//                    "Joining the chatroom failed. Please try again.",
+//                    "Joining chatroom failed.",
+//                    JOptionPane.ERROR_MESSAGE);
+//        }
     }//GEN-LAST:event_mainJoinChatButtonActionPerformed
 
+    public static String getAddress() {
+        return address;
+    }
+    
+    public static int getPort() {
+        return port;
+    }
+    
+    public static String getUser() {
+        return user;
+    }
+    
+    
+    class updateFields extends TimerTask {
+
+        @Override
+        public void run() {
+            String contacts = SSLSocketClient.requestContactUpdate();
+            //TODO
+            String rooms = SSLSocketClient.requestChatroomUpdate();
+            //TODO
+        }
+        
+    }
+    
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
+        address = args[0];
+        port = Integer.parseInt(args[1]);
+        
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
@@ -458,6 +533,7 @@ public class GUI extends javax.swing.JFrame {
         });
     }
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JTextArea jTextArea1;
     private javax.swing.JButton loginButton;
     private javax.swing.JPanel loginPanel;
     private javax.swing.JTextField loginPasswordTextfield;
@@ -480,5 +556,7 @@ public class GUI extends javax.swing.JFrame {
     private javax.swing.JLabel registerTitleLabel;
     private javax.swing.JTextField registerUsernameTextField;
     // End of variables declaration//GEN-END:variables
-    private SSLSocketClient client;
+    private static String address;
+    private static int port;
+    private static String user;
 }
