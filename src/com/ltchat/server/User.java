@@ -10,7 +10,6 @@ public class User {
     private Socket connection;
     private PrintWriter out;
     private Scanner in;
-    private boolean isAuthenticated;
     
     public User(String id, Socket socket) throws IOException {
         userID = id;

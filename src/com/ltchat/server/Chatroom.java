@@ -23,7 +23,7 @@ public class Chatroom {
     }
     
     public void sendMessage(String message) {
-        
+        //TODO: Timestamp logged chat, not broadcast
         System.out.println("Number of users: " + users.size());
         for (User u : users) {
             u.getOutputWriter().println(message);

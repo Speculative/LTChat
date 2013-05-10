@@ -1,15 +1,9 @@
 package com.ltchat.server;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLServerSocketFactory;
@@ -83,6 +77,7 @@ public class LTServer {
     public void addUser(User u) throws IOException {
         if (allUsers.containsKey(u.getID())) {
             //TODO: No concurrent login
+            //TODO: Write true/false for login success here
             u.getOutputWriter().println("That user is already logged in!");
             u.close();
         } else {
