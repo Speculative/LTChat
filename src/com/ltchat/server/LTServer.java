@@ -7,16 +7,29 @@ import java.util.Map;
 
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLServerSocketFactory;
-import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 
-public class LTServer {
+/**
+ * @author Jeff
+ * Manages users, chatrooms, and connections.
+ */
+public final class LTServer {
     
+    /** We only want one server running. */
+    private static LTServer serverInstance;
+    
+    /** Handles all incoming connections. */
     private ServerSocket serverSocket;
+    /** Server needs to keep track of all active chats. */
     private Map<String, Chatroom> allChatrooms;
+    /** Server needs to keep track of all current users. */
     private Map<String, User> allUsers;
     
-    LTServer(int port) {
+    /**
+     * Starts accepting connections.
+     * @param port Port to listen on
+     */
+    private LTServer(final int port) {
         try {
             
             System.setProperty("javax.net.ssl.keyStore", "LTChat.jks");
@@ -37,6 +50,21 @@ public class LTServer {
         }
 	}
     
+    /**
+     * @param port Port to listen on (passed to constructor)
+     * @return The server instance
+     */
+    public static LTServer getInstance(final int port) {
+        
+        if (serverInstance == null) {
+            serverInstance = new LTServer(port);
+        }
+        
+        return serverInstance; 
+        
+    }
+    
+    /** Starts a new ServerWorker thread to handle each connection. */
     private void handleNewConnections() {
         
         int i = 1;
@@ -56,7 +84,12 @@ public class LTServer {
         
     }
     
-    public Chatroom getChatroom(String id) {
+    /**
+     *  Gets the reference to a chatroom, or makes one if it doesn't exist.
+     *  @param id Chatroom name
+     *  @return The chatroom matching id
+     */
+    public Chatroom getChatroom(final String id) {
         
         if (allChatrooms.containsKey(id)) {
             return allChatrooms.get(id);
@@ -66,7 +99,12 @@ public class LTServer {
     
     }
     
-    private Chatroom makeChatroom(String id) {
+    /**
+     * Creates a new chatroom and adds it to the server's list.
+     * @param id Name of the chatroom
+     * @return The chatroom
+     */
+    private Chatroom makeChatroom(final String id) {
         
         Chatroom chat = new Chatroom(id);
         allChatrooms.put(id, chat);
@@ -74,19 +112,28 @@ public class LTServer {
     
     }
     
-    public void addUser(User u) throws IOException {
+    /**
+     * Adds a user to the server's list.
+     * @param u The user
+     * @throws IOException Something happened to client socket.
+     */
+    public boolean addUser(final User u) throws IOException {
+        
         if (allUsers.containsKey(u.getID())) {
             //TODO: No concurrent login
             //TODO: Write true/false for login success here
-            u.getOutputWriter().println("That user is already logged in!");
-            u.close();
+            return false;
         } else {
             allUsers.put(u.getID(), u);
+            System.out.println("Online users: " + allUsers.size());
+            return true;
         }
-        System.out.println("Online users: " + allUsers.size());
     
     }
     
+    /**
+     * Shut down the server.
+     */
     private void closeServer() {
         try {
             serverSocket.close();

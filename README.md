@@ -2,10 +2,10 @@ LTChat
 ======
 Required Libraries for build:
 
-Jsypt
-
 Xerial's SQLite JDBC Driver:
 https://bitbucket.org/xerial/sqlite-jdbc/overview
+
+Apache Commons Codec
 
 To set up keystore:
 

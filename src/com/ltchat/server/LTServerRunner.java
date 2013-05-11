@@ -13,7 +13,7 @@ public class LTServerRunner {
         if (args.length != 1) {
             System.out.println("Usage: java LTServerRunner port");
         } else {
-            LTServer server = new LTServer(Integer.parseInt(args[0]));
+            LTServer server = LTServer.getInstance(Integer.parseInt(args[0]));
         }
     }
 
