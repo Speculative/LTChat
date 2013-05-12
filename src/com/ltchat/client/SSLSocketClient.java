@@ -12,7 +12,6 @@ import java.security.SecureRandom;
 import java.util.Scanner;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-
 import org.apache.commons.codec.binary.Base64;
 
 /**
