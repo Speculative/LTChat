@@ -30,7 +30,12 @@ public class ServerWorker implements Runnable {
             Authenticator a =
                     new Authenticator(new User("", client));
             user = a.authenticate();
-            theServer.addUser(user);
+            if (theServer.addUser(user)) {
+                user.getOutputWriter().println("LOGIN`true");
+            } else {
+                //Duplicate login - user already online
+                user.getOutputWriter().println("LOGIN`false");
+            }
             System.out.println("Client Connected!! Yay!");
        
         } catch (IOException e) {
@@ -81,16 +86,16 @@ public class ServerWorker implements Runnable {
             String message = user.getInputReader().nextLine();
             System.out.println("Message: " + message);
             
-            if (message.matches("\\w+\\s+.+")) {
+            if (message.matches("\\w+`+.+")) {
                 
-                String[] input = message.split("\\s", 2);
-                String command = input[0].toLowerCase();
+                String[] input = message.split("`", 2);
+                String command = input[0];
                 System.out.println("Command: " + command);
                 String args = input[1];
                 
-                if (command.equals("join")) {
+                if (command.equalsIgnoreCase("join")) {
                     
-                    if (!args.contains(" ")) {
+                    if (!args.contains("`")) {
                         
                         server.getChatroom(args).addUser(user);
                         user.getOutputWriter()
@@ -100,18 +105,13 @@ public class ServerWorker implements Runnable {
                         user.getOutputWriter().println("Usage: join [chat]");
                     }
                     
-                } else if (command.equals("message")) {
+                } else if (command.equalsIgnoreCase("message")) {
                     
-                    if (args.matches("^\\w+\\s?.+")) {
+                    if (args.matches("^\\w+`?.+")) {
                         
-                        String[] messageArgs = args.split("\\s", 2);
+                        String[] messageArgs = args.split("`", 2);
                         server.getChatroom(messageArgs[0])
                             .sendMessage(user.getID(), messageArgs[1]);
-                        
-                    } else {
-                        
-                        user.getOutputWriter()
-                            .println("Usage: message [chatid] [message]");
                         
                     }
                     

@@ -10,9 +10,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Scanner;
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
+
+import org.apache.commons.codec.binary.Base64;
 
 /**
  *
@@ -27,13 +28,14 @@ public class SSLSocketClient {
     private String tempPass;
 
     public SSLSocketClient(String hostname, int port) {
-        SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory();
+        System.setProperty("javax.net.ssl.trustStore", "LTClient.jks");
+        System.setProperty("javax.net.ssl.trustStorePassword", "ltpass");
+        SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
         System.out.println("Creating a SSL Socket for " + hostname
                 + "on port " + port + ".");
         try {
             socket = (SSLSocket) factory.createSocket(hostname, port);
-            socket.startHandshake();
-            out = new PrintWriter(socket.getOutputStream());
+            out = new PrintWriter(socket.getOutputStream(), true);
             in = new Scanner(socket.getInputStream());
         } catch (IOException ex) {
             System.out.println("IO Exception in creating SSL socket.");
@@ -59,7 +61,7 @@ public class SSLSocketClient {
         } catch (NoSuchAlgorithmException ex) {
             System.out.println("Check genSalt() algorithm.");
         }
-        return new String(salt);
+        return new String(Base64.encodeBase64(salt));
     }
     
     public void requestSalt(String username, String password) {
@@ -77,7 +79,7 @@ public class SSLSocketClient {
         } catch (NoSuchAlgorithmException ex) {
             System.out.println("Check hash() algorithm.");
         }
-        return new String(md.digest());
+        return new String(Base64.encodeBase64(md.digest()));
     }
     
     public String listen() {

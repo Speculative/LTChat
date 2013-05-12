@@ -114,14 +114,13 @@ public final class LTServer {
     
     /**
      * Adds a user to the server's list.
-     * @param u The user
-     * @throws IOException Something happened to client socket.
+     * @param u The user to add
+     * @throws IOException Something happened to client socket
+     * @return True if successful, False if duplicate login
      */
     public boolean addUser(final User u) throws IOException {
         
         if (allUsers.containsKey(u.getID())) {
-            //TODO: No concurrent login
-            //TODO: Write true/false for login success here
             return false;
         } else {
             allUsers.put(u.getID(), u);

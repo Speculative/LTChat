@@ -467,11 +467,11 @@ public class GUI extends javax.swing.JFrame {
                     "You have successfully registered as " + user + ".",
                     "Registered",
                     JOptionPane.INFORMATION_MESSAGE);
-            loginPanel.setVisible(false);
+            loginPanel.setVisible(true);
+            registerPanel.setVisible(false);
             registerUsernameTextField.setText("Username");
             registerPasswordTextField.setText("Password");
             registerRePasswordTextField.setText("Re-enter Password");
-            mainPanel.setVisible(true);
 
         } else {
             JOptionPane.showMessageDialog(loginPanel,

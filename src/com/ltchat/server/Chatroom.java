@@ -42,9 +42,10 @@ public class Chatroom {
     
     /**
      * Sends a message to all users in the room.
+     * @param userID User who sent the message
      * @param message The message
      */
-    public void sendMessage(String userID, String message) {
+    public void sendMessage(final String userID, final String message) {
         System.out.println("Number of users: " + users.size());
         for (User u : users) {
             u.getOutputWriter().println(userID + ": " + message);
