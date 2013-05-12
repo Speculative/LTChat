@@ -81,7 +81,7 @@
                           <Component id="loginRegisterLinkLabel" alignment="1" min="-2" max="-2" attributes="0"/>
                       </Group>
                   </Group>
-                  <EmptySpace pref="447" max="32767" attributes="0"/>
+                  <EmptySpace pref="530" max="32767" attributes="0"/>
               </Group>
           </Group>
         </DimensionLayout>
@@ -322,6 +322,7 @@
         <Component class="javax.swing.JButton" name="mainJoinChatButton">
           <Properties>
             <Property name="text" type="java.lang.String" value="Join Chatroom"/>
+            <Property name="toolTipText" type="java.lang.String" value="If the textfield has content, a chatroom with that name is either created or joined."/>
           </Properties>
           <Events>
             <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="mainJoinChatButtonActionPerformed"/>

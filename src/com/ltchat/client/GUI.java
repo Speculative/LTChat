@@ -4,11 +4,12 @@
  */
 package com.ltchat.client;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.swing.ListModel;
 import javax.swing.ListSelectionModel;
 
 /**
@@ -20,14 +21,14 @@ public class GUI extends javax.swing.JFrame {
     /**
      * Creates new form GUI
      */
-    public GUI() {
+    public GUI(String a, int p, SSLSocketClient c) {
         initComponents();
-        loginPanel.setVisible(false);
+        loginPanel.setVisible(true);
         registerPanel.setVisible(false);
-        mainPanel.setVisible(true);
+        mainPanel.setVisible(false);
         mainChatroomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        Timer timer = new Timer();
-        timer.schedule(updateFields, 10000);
+        client = c;
+        tabs = new ArrayList<>();
     }
 
     /**
@@ -116,7 +117,7 @@ public class GUI extends javax.swing.JFrame {
                             .addComponent(loginPasswordTextfield, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(loginUsernameTextField, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addComponent(loginRegisterLinkLabel)))
-                .addContainerGap(447, Short.MAX_VALUE))
+                .addContainerGap(530, Short.MAX_VALUE))
         );
         loginPanelLayout.setVerticalGroup(
             loginPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -214,6 +215,7 @@ public class GUI extends javax.swing.JFrame {
         mainChatroomScrollPane.setViewportView(mainChatroomList);
 
         mainJoinChatButton.setText("Join Chatroom");
+        mainJoinChatButton.setToolTipText("If the textfield has content, a chatroom with that name is either created or joined.");
         mainJoinChatButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 mainJoinChatButtonActionPerformed(evt);
@@ -306,21 +308,8 @@ public class GUI extends javax.swing.JFrame {
     private void loginButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loginButtonActionPerformed
         String username = loginUsernameTextField.getText();
         String password = loginPasswordTextfield.getText();
-        boolean allow = SSLSocketClient.login(username, password);
-        if (allow) {
-            loginPanel.setVisible(false);
-            loginUsernameTextField.setText("Username");
-            loginPasswordTextfield.setText("Password");
-            mainPanel.setVisible(true);
-            user = username;
-        } else {
-            JOptionPane.showMessageDialog(loginPanel,
-                    "Your username or password was incorrect.",
-                    "Login Failed",
-                    JOptionPane.ERROR_MESSAGE);
-            loginUsernameTextField.setText("Username");
-            loginPasswordTextfield.setText("Password");
-        }
+        client.requestSalt(username, password);
+        user = username;
     }//GEN-LAST:event_loginButtonActionPerformed
 
     private void loginRegisterLinkLabelMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_loginRegisterLinkLabelMouseClicked
@@ -366,6 +355,7 @@ public class GUI extends javax.swing.JFrame {
                     "Your username or password cannot be blank.",
                     "Error: Bad Username or Password",
                     JOptionPane.ERROR_MESSAGE);
+            return;
         } //If user did not click on the textbox.
         else if (username.equalsIgnoreCase("username")) {
             JOptionPane.showMessageDialog(registerPanel,
@@ -375,6 +365,7 @@ public class GUI extends javax.swing.JFrame {
             registerUsernameTextField.setText("Username");
             registerPasswordTextField.setText("Password");
             registerRePasswordTextField.setText("Re-enter Password");
+            return;
         } else if (password.equalsIgnoreCase("password")) {
             JOptionPane.showMessageDialog(registerPanel,
                     "Your password may not be \"password\".",
@@ -382,6 +373,7 @@ public class GUI extends javax.swing.JFrame {
                     JOptionPane.ERROR_MESSAGE);
             registerPasswordTextField.setText("Password");
             registerRePasswordTextField.setText("Re-enter Password");
+            return;
         }
         //Checking username format.
         Pattern pattern = Pattern.compile("^[a-zA-Z0-9_-]{3,15}$");
@@ -393,6 +385,7 @@ public class GUI extends javax.swing.JFrame {
             registerUsernameTextField.setText("Username");
             registerPasswordTextField.setText("Password");
             registerRePasswordTextField.setText("Re-enter Password");
+            return;
         }
         //Checking password format.
         pattern = Pattern.compile("(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*]).{6,20}");
@@ -404,12 +397,74 @@ public class GUI extends javax.swing.JFrame {
                     + " (!@#$%^&*).");
             registerPasswordTextField.setText("Password");
             registerRePasswordTextField.setText("Re-enter Password");
+            return;
         }
         //Registering
-        boolean allow = SSLSocketClient.register(username, password);
+        client.register(username, password);
+    }//GEN-LAST:event_registerButtonActionPerformed
+
+    private void registerLoginLinkLabelMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_registerLoginLinkLabelMouseClicked
+        registerPanel.setVisible(false);
+        registerUsernameTextField.setText("Username");
+        registerPasswordTextField.setText("Password");
+        registerRePasswordTextField.setText("Re-enter Password");
+        loginPanel.setVisible(true);
+    }//GEN-LAST:event_registerLoginLinkLabelMouseClicked
+
+    private void mainAddContactButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mainAddContactButtonActionPerformed
+        String id = JOptionPane.showInputDialog(mainPanel,
+                "Please input contact's exact id.",
+                "Add Friend",
+                JOptionPane.QUESTION_MESSAGE);
+        client.addContact(id);
+    }//GEN-LAST:event_mainAddContactButtonActionPerformed
+
+    private void mainJoinChatButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mainJoinChatButtonActionPerformed
+        String room = (String) mainChatroomList.getSelectedValue();
+        client.joinChat(room);
+        ChatTab chatroomPanel = new ChatTab(client, user);
+        tabs.add(chatroomPanel);
+        mainChatTabbedPane.addTab(room, chatroomPanel);
+
+    }//GEN-LAST:event_mainJoinChatButtonActionPerformed
+
+    public void addMessage(String chatId, String user, String message) {
+        for (ChatTab tab : tabs) {
+            if (tab.getChat().equals(chatId)) {
+                tab.upMessage(user, message);
+                return;
+            }
+        }
+    }
+
+    public void updateChats(String chats) {
+        mainChatroomList = new JList(chats.split("\\s"));
+    }
+
+    public void updateContacts(String contacts) {
+        mainContactTextArea.setText(contacts.replaceAll("\\s", "\n"));
+    }
+    
+    public void login(boolean allow) {
+        if (allow) {
+            loginPanel.setVisible(false);
+            loginUsernameTextField.setText("Username");
+            loginPasswordTextfield.setText("Password");
+            mainPanel.setVisible(true);
+        } else {
+            JOptionPane.showMessageDialog(loginPanel,
+                    "Your username or password was incorrect.",
+                    "Login Failed",
+                    JOptionPane.ERROR_MESSAGE);
+            loginUsernameTextField.setText("Username");
+            loginPasswordTextfield.setText("Password");
+        }
+    }
+    
+    public void register(boolean allow) {
         if (allow) {
             JOptionPane.showMessageDialog(loginPanel,
-                    "You have successfully registered as " + username + ".",
+                    "You have successfully registered as " + user + ".",
                     "Registered",
                     JOptionPane.INFORMATION_MESSAGE);
             loginPanel.setVisible(false);
@@ -428,110 +483,8 @@ public class GUI extends javax.swing.JFrame {
             registerPasswordTextField.setText("Password");
             registerRePasswordTextField.setText("Re-enter Password");
         }
-    }//GEN-LAST:event_registerButtonActionPerformed
-
-    private void registerLoginLinkLabelMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_registerLoginLinkLabelMouseClicked
-        registerPanel.setVisible(false);
-        registerUsernameTextField.setText("Username");
-        registerPasswordTextField.setText("Password");
-        registerRePasswordTextField.setText("Re-enter Password");
-        loginPanel.setVisible(true);
-    }//GEN-LAST:event_registerLoginLinkLabelMouseClicked
-
-    private void mainAddContactButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mainAddContactButtonActionPerformed
-        String id = JOptionPane.showInputDialog(mainPanel,
-                "Please input friends exact id.",
-                "Add Friend",
-                JOptionPane.QUESTION_MESSAGE);
-        boolean success = SSLSocketClient.addContact(id);
-        if (success) {
-            JOptionPane.showMessageDialog(mainPanel,
-                    "Your contact has been added.",
-                    "Contact Added",
-                    JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            JOptionPane.showMessageDialog(rootPane,
-                    "No contact with this name found. Please try again.",
-                    "Contact Not Added",
-                    JOptionPane.ERROR_MESSAGE);
-        }
-    }//GEN-LAST:event_mainAddContactButtonActionPerformed
-
-    private void mainJoinChatButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mainJoinChatButtonActionPerformed
-        String room = (String) mainChatroomList.getSelectedValue();
-        //if (SSLSocketClient.joinChat(room)) {
-            ChatTab chatroomPanel = new ChatTab();
-            mainChatTabbedPane.addTab(room, chatroomPanel);
-//        } else {
-//            JOptionPane.showMessageDialog(registerPanel,
-//                    "Joining the chatroom failed. Please try again.",
-//                    "Joining chatroom failed.",
-//                    JOptionPane.ERROR_MESSAGE);
-//        }
-    }//GEN-LAST:event_mainJoinChatButtonActionPerformed
-
-    public static String getAddress() {
-        return address;
     }
     
-    public static int getPort() {
-        return port;
-    }
-    
-    public static String getUser() {
-        return user;
-    }
-    
-    
-    class updateFields extends TimerTask {
-
-        @Override
-        public void run() {
-            String contacts = SSLSocketClient.requestContactUpdate();
-            //TODO
-            String rooms = SSLSocketClient.requestChatroomUpdate();
-            //TODO
-        }
-        
-    }
-    
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        address = args[0];
-        port = Integer.parseInt(args[1]);
-        
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(GUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(GUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(GUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(GUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
-
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new GUI().setVisible(true);
-            }
-        });
-    }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextArea jTextArea1;
     private javax.swing.JButton loginButton;
@@ -556,7 +509,7 @@ public class GUI extends javax.swing.JFrame {
     private javax.swing.JLabel registerTitleLabel;
     private javax.swing.JTextField registerUsernameTextField;
     // End of variables declaration//GEN-END:variables
-    private static String address;
-    private static int port;
-    private static String user;
+    private static ArrayList<ChatTab> tabs;
+    private SSLSocketClient client;
+    private String user;
 }

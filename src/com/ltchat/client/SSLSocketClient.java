@@ -10,9 +10,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Scanner;
-import java.util.TimerTask;
-import java.util.concurrent.locks.ReentrantLock;
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  *
@@ -20,28 +20,27 @@ import javax.net.ssl.SSLSocket;
  */
 public class SSLSocketClient {
 
-    private static SSLSocket socket;
-    private static PrintWriter out;
-    private static Scanner in;
+    private SSLSocket socket;
+    private PrintWriter out;
+    private Scanner in;
+    private String tempUser;
+    private String tempPass;
 
-//    static {
-//        String hostname = GUI.getAddress();
-//        int port = GUI.getPort();
-//        SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory();
-//        System.out.println("Creating a SSL Socket for " + hostname
-//                + "on port " + port + ".");
-//
-//        try {
-//            socket = (SSLSocket) factory.createSocket(hostname, port);
-//            socket.startHandshake();
-//            out = new PrintWriter(socket.getOutputStream());
-//            in = new Scanner(socket.getInputStream());
-//        } catch (IOException ex) {
-//            System.out.println("IO Exception in creating SSL socket.");
-//        }
-//    }
+    public SSLSocketClient(String hostname, int port) {
+        SSLSocketFactory factory = HttpsURLConnection.getDefaultSSLSocketFactory();
+        System.out.println("Creating a SSL Socket for " + hostname
+                + "on port " + port + ".");
+        try {
+            socket = (SSLSocket) factory.createSocket(hostname, port);
+            socket.startHandshake();
+            out = new PrintWriter(socket.getOutputStream());
+            in = new Scanner(socket.getInputStream());
+        } catch (IOException ex) {
+            System.out.println("IO Exception in creating SSL socket.");
+        }
+    }
 
-    private static void closeConnections() {
+    private void closeConnections() {
         try {
             socket.close();
             out.close();
@@ -52,7 +51,7 @@ public class SSLSocketClient {
         }
     }
     
-    private static String genSalt() {
+    private String genSalt() {
         final int SALTLENGTH = 32;
         byte[] salt = null;
         try {
@@ -63,12 +62,13 @@ public class SSLSocketClient {
         return new String(salt);
     }
     
-    private static String requestSalt() {
-        out.println("REQSALT`" + GUI.getUser());
-        return in.nextLine();
+    public void requestSalt(String username, String password) {
+        out.println("REQSALT`" + username);
+        tempUser = username;
+        tempPass = password;
     }
     
-    private static String hash(String password, String salt) {
+    private String hash(String password, String salt) {
         MessageDigest md = null;
         try {
             md = MessageDigest.getInstance("SHA1");
@@ -79,43 +79,31 @@ public class SSLSocketClient {
         }
         return new String(md.digest());
     }
-
-    public static boolean login(String username, String password) {
-        String salt = requestSalt();
-        String encrypt = hash(password, salt);
-        out.println("LOGIN`" + username + "`" + encrypt + "`" + salt);
-        return in.nextBoolean();
+    
+    public String listen() {
+        return in.nextLine();
     }
 
-    public static boolean register(String username, String password) {
-        String salt = requestSalt();
+    public void login(String salt) {
+        String encrypt = hash(tempPass, salt);
+        out.println("LOGIN`" + tempUser + "`" + encrypt);
+    }
+
+    public void register(String username, String password) {
+        String salt = genSalt();
         String encrypt = hash(password, salt);
         out.println("REGISTER`" + username + "`" + encrypt + "`" + salt);
-        return in.nextBoolean();
     }
 
-    public static boolean addContact(String username) {
+    public void addContact(String username) {
         out.println("ADDCONTACT`" + username);
-        return in.nextBoolean();
     }
 
-    public static boolean joinChat(String room) {
+    public void joinChat(String room) {
         out.println("JOIN`" + room);
-        return in.nextBoolean();
     }
     
-    public static boolean sendMessage(String message, String userId) {
-        out.println("MESSAGE`" + userId + "`" + message);
-        return in.nextBoolean();
-    }
-    
-    public static String requestContactUpdate() {
-        out.println("UPCONT`" + GUI.getUser());
-        return in.nextLine();
-    }
-    
-    public static String requestChatroomUpdate() {
-        out.println("UPROOM`");
-        return in.nextLine();
+    public void sendMessage(String message, String chatId) {
+        out.println("MESSAGE`" + chatId + "`" + message);
     }
 }
