@@ -7,9 +7,7 @@ package com.ltchat.client;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.swing.JList;
 import javax.swing.JOptionPane;
-import javax.swing.ListModel;
 import javax.swing.ListSelectionModel;
 
 /**
@@ -26,7 +24,9 @@ public class GUI extends javax.swing.JFrame {
         loginPanel.setVisible(true);
         registerPanel.setVisible(false);
         mainPanel.setVisible(false);
+
         mainChatroomList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        //Initializing variables.
         client = c;
         tabs = new ArrayList<>();
     }
@@ -427,17 +427,30 @@ public class GUI extends javax.swing.JFrame {
     }//GEN-LAST:event_mainAddContactButtonActionPerformed
 
     private void mainJoinChatButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mainJoinChatButtonActionPerformed
+        //Obtaining the name of a room to create (or join).
         String room = mainJoinChatroomTextField.getText();
+        //If textField is empty, get the selected room from the list.
         if (room.isEmpty() || room == null) {
             room = (String) mainChatroomList.getSelectedValue();
         }
-        client.joinChat(room);
-        ChatTab chatroomPanel = new ChatTab(client, room);
-        tabs.add(chatroomPanel);
-        mainChatTabbedPane.addTab(room, chatroomPanel);
+        //If a room is specified, attempt to join (and create if necessary).
+        //Create a tab for the chat.
+        if (!(room.isEmpty() || room == null)) {
+            client.joinChat(room);
+            ChatTab chatroomPanel = new ChatTab(client, room);
+            tabs.add(chatroomPanel);
+            mainChatTabbedPane.addTab(room, chatroomPanel);
+        }
     }//GEN-LAST:event_mainJoinChatButtonActionPerformed
 
+    /**
+     * Adds a user message sent from server to appropriate chat tab.
+     * @param chatId The name of the chat to add the message to.
+     * @param user The name of the user sending it.
+     * @param message The message sent by the user.
+     */
     public void addMessage(String chatId, String user, String message) {
+        //Searches for the Chat tab with the appropriate name and adds message.
         for (ChatTab tab : tabs) {
             if (tab.getChat().equals(chatId)) {
                 tab.upMessage(user, message);
@@ -446,21 +459,35 @@ public class GUI extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Updates the list of chat rooms open.
+     * @param chats The name of the chat rooms in String format.
+     */
     public void updateChats(String chats) {
         mainChatroomList.setListData(chats.split("\\s"));
     }
 
+    /**
+     * Updates the text table of contact locations.
+     * @param contacts The text form of the contact locations.
+     */
     public void updateContacts(String contacts) {
         mainContactTextArea.setText(contacts.replaceAll("\\s", "\n"));
     }
-    
+
+    /**
+     * Processing server return for login request.
+     * @param allow Whether the server allows the user to login or not.
+     */
     public void login(boolean allow) {
+        //Login correct.
         if (allow) {
+            //Display main screen.
             loginPanel.setVisible(false);
             loginUsernameTextField.setText("Username");
             loginPasswordTextfield.setText("Password");
             mainPanel.setVisible(true);
-        } else {
+        } else { //Login incorrect.
             JOptionPane.showMessageDialog(loginPanel,
                     "Your username or password was incorrect.",
                     "Login Failed",
@@ -469,20 +496,26 @@ public class GUI extends javax.swing.JFrame {
             loginPasswordTextfield.setText("Password");
         }
     }
-    
+
+    /**
+     * Processing server return for registration request.
+     * @param allow Whether the server allows the registration or not.
+     */
     public void register(boolean allow) {
+        //Registration passed.
         if (allow) {
             JOptionPane.showMessageDialog(loginPanel,
                     "You have successfully registered as " + user + ".",
                     "Registered",
                     JOptionPane.INFORMATION_MESSAGE);
-            loginPanel.setVisible(true);
+            //Return to login screen.
             registerPanel.setVisible(false);
             registerUsernameTextField.setText("Username");
             registerPasswordTextField.setText("Password");
             registerRePasswordTextField.setText("Re-enter Password");
+            loginPanel.setVisible(true);
 
-        } else {
+        } else { //Registration failed.
             JOptionPane.showMessageDialog(loginPanel,
                     "Your registration has failed."
                     + "Please try another username.",
@@ -493,7 +526,6 @@ public class GUI extends javax.swing.JFrame {
             registerRePasswordTextField.setText("Re-enter Password");
         }
     }
-    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextArea jTextArea1;
     private javax.swing.JButton loginButton;

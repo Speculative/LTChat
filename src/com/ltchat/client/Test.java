@@ -16,6 +16,7 @@ public class Test {
     public static void main(String[] args) {
         final String address = args[0];
         final int port = Integer.parseInt(args[1]);
+        //Creating client with given address and port.
         final SSLSocketClient client = new SSLSocketClient(address, port);
 
         /* Set the Nimbus look and feel */
@@ -41,16 +42,19 @@ public class Test {
         }
         //</editor-fold>
         
+        //Instantiating the GUI.
         final GUI gui = new GUI(address, port, client);
 
+        //Making the GUI runnable by a thread.
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
                gui.setVisible(true);
             }
         });
-
+        
         ListenInput li = new ListenInput(client, gui);
+        //Running threads.
         Thread t2 = new Thread(li);
         t2.start();
     }
