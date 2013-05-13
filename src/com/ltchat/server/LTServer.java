@@ -67,7 +67,6 @@ public final class LTServer {
     /** Starts a new ServerWorker thread to handle each connection. */
     private void handleNewConnections() {
         
-        int i = 1;
         while (true) {
             try {
                 
@@ -75,7 +74,6 @@ public final class LTServer {
                 Runnable worker = new ServerWorker(clientSocket, this);
                 Thread t = new Thread(worker);
                 t.start();
-                System.out.println("Started Thread " + i++);
                 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -108,8 +106,78 @@ public final class LTServer {
         
         Chatroom chat = new Chatroom(id);
         allChatrooms.put(id, chat);
+        
+        //Update all users
+        for (User u : allUsers.values()) {
+            printChatList(u);
+        }
+        
         return chat;
     
+    }
+    
+    /**
+     * Updates the user with a list of all current chats.
+     * @param u User to be notified
+     */
+    private void printChatList(final User u) {
+        
+        if (!allChatrooms.isEmpty()) {
+            
+            String message = "UPCHAT`";
+            for (String chatID : allChatrooms.keySet()) {
+                message += chatID + " ";
+            }
+            message.trim();
+            u.getOutputWriter().println(message);
+            
+        }
+        
+    }
+    
+    /**
+     * Prints all online contacts and the chatrooms they're in.
+     * @param u User whose contact list we're updating
+     */
+    public void printContactList(final User u) {
+        
+        if (!u.getContactList().isEmpty()) {
+            
+            String message = "UPCONTACT`";
+            
+            for (String userID : u.getContactList()) {
+                //See if contacts are online
+                if (allUsers.containsKey(userID)) {
+                    message += userID + "-";
+                    for (Chatroom c : allChatrooms.values()) {
+                        if (c.hasUser(userID)) {
+                            message += c.getChatID() + ",";
+                        }
+                    }
+                    message += " ";
+                }
+            }
+            message.trim();
+            if (!message.equals("UPCONTACT`")) {
+                u.getOutputWriter().println(message);
+            }
+            
+        }
+        
+    }
+    
+    /**
+     * Notify all contacts that have user as a contact.
+     * @param u User that other users are updated about
+     */
+    public void notifyAllContacts(final User u) {
+        
+        for (User someUser : allUsers.values()) {
+            if (someUser.getContactList().contains(u.getID())) {
+                printContactList(someUser);
+            }
+        }
+        
     }
     
     /**
@@ -123,11 +191,27 @@ public final class LTServer {
         if (allUsers.containsKey(u.getID())) {
             return false;
         } else {
+            
             allUsers.put(u.getID(), u);
             System.out.println("Online users: " + allUsers.size());
+            printChatList(u);
+            //Update all online contacts
+            for (User someUser : allUsers.values()) {
+                if (someUser.getContactList().contains(u.getID())) {
+                    printContactList(someUser);
+                }
+            }
             return true;
         }
     
+    }
+    
+    /**
+     * Remove a user from allUsers list (logging out).
+     * @param userID ID of user to remove
+     */
+    public void removeUser(final String userID) {
+        allUsers.remove(userID);
     }
     
     /**

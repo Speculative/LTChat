@@ -3,6 +3,7 @@ package com.ltchat.server;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 /**
@@ -19,6 +20,8 @@ public class User {
     private PrintWriter out;
     /** Input reader for the user's socket. */
     private Scanner in;
+    /** User's buddy list. */
+    private ArrayList<String> contactList;
     
     /**
      * @param id User ID
@@ -26,10 +29,13 @@ public class User {
      * @throws IOException Connection probably closed
      */
     public User(final String id, final Socket socket) throws IOException {
+        
         userID = id;
         connection = socket;
         out = new PrintWriter(connection.getOutputStream(), true);
         in = new Scanner(connection.getInputStream());
+        contactList = new ArrayList<String>();
+        
     }
     
     /**
@@ -68,13 +74,33 @@ public class User {
     }
     
     /**
+     * @param contactID User ID of contact to add
+     */
+    public void addContact(final String contactID) {
+        
+        if (!contactList.contains(contactID)) {
+            contactList.add(contactID);
+        }
+        
+    }
+    
+    /**
+     * @return Copy of user's contact list
+     */
+    public ArrayList<String> getContactList() {
+        return new ArrayList<String>(contactList);
+    }
+    
+    /**
      * Close up all the connections.
      * @throws IOException User closed connection.
      */
     public final void close() throws IOException {
+        
         out.close();
         in.close();
         connection.close();
+        
     }
     
 }

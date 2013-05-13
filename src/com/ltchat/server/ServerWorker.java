@@ -1,7 +1,12 @@
 package com.ltchat.server;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
 
 import javax.net.ssl.SSLSocket;
 
@@ -30,21 +35,83 @@ public class ServerWorker implements Runnable {
             Authenticator a =
                     new Authenticator(new User("", client));
             user = a.authenticate();
-            if (theServer.addUser(user)) {
+            if (server.addUser(user)) {
                 user.getOutputWriter().println("LOGIN`true");
+                makeContactList();
             } else {
                 //Duplicate login - user already online
                 user.getOutputWriter().println("LOGIN`false");
             }
-            System.out.println("Client Connected!! Yay!");
        
         } catch (IOException e) {
             e.printStackTrace();
         } catch (SQLException e) {
             e.printStackTrace();
+            System.out.println("DB Error");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
-
+    
+    /**
+     * Initializes the user's contact list.
+     * @throws ClassNotFoundException Probably missing JDBC drivers
+     * @throws SQLException DB Error
+     */
+    private void makeContactList() throws ClassNotFoundException, SQLException {
+        Class.forName("org.sqlite.JDBC");
+        Connection dbConnection =
+                DriverManager.getConnection("jdbc:sqlite:./LTChat.db");
+        Statement query = dbConnection.createStatement();
+        ResultSet buddies = query.executeQuery(
+                "SELECT buddies FROM users WHERE id='"
+                + user.getID()
+                + "' AND buddies IS NOT NULL;");
+        if (buddies.next()) {
+            
+            String serializedList = buddies.getString("buddies");
+            if (!serializedList.isEmpty()) {
+                String[] contactList =
+                        buddies.getString("buddies").split("\\s");
+                for (String contact : contactList) {
+                    user.addContact(contact);
+                }
+                server.printContactList(user);
+            }
+            
+        }
+        dbConnection.close();
+    }
+    
+    /**
+     * Writes the user's contact list to the db.
+     * @throws ClassNotFoundException Probably missing JDBC drivers
+     * @throws SQLException DB Error
+     */
+    private void writeContactList()
+            throws ClassNotFoundException,
+            SQLException {
+        
+        Class.forName("org.sqlite.JDBC");
+        Connection dbConnection =
+                DriverManager.getConnection("jdbc:sqlite:./LTChat.db");
+        Statement query = dbConnection.createStatement();
+        ArrayList<String> contactList = user.getContactList();
+        String serializedList = "";
+        for (String contactID : contactList) {
+            serializedList += contactID + " ";
+        }
+        serializedList.trim();
+        query.execute("UPDATE users "
+                + "SET buddies='"
+                + serializedList
+                + "' WHERE id='"
+                + user.getID()
+                + "';");
+        dbConnection.close();
+        
+    }
+    
     @Override
     public void run() {
         
@@ -55,6 +122,14 @@ public class ServerWorker implements Runnable {
         } catch (IOException e) {
             System.out.println("Uh oh.");
             e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.out.println("DB Error");
+        } finally {
+            //Log off
+            server.removeUser(user.getID());
         }
 
     }
@@ -77,9 +152,13 @@ public class ServerWorker implements Runnable {
     /**
      * Handles user input/output.
      * @throws IOException Client probably closed.
+     * @throws SQLException DB Error
+     * @throws ClassNotFoundException Probably missing JDBC drivers
      */
-    private void handleMessages() throws IOException {
-        //TODO: This needs to do chatroom communication now
+    private void handleMessages()
+            throws IOException,
+            ClassNotFoundException,
+            SQLException {
         //TODO: Remove all the sysouts in here
         while (user.getInputReader().hasNext()) {
             
@@ -90,7 +169,6 @@ public class ServerWorker implements Runnable {
                 
                 String[] input = message.split("`", 2);
                 String command = input[0];
-                System.out.println("Command: " + command);
                 String args = input[1];
                 
                 if (command.equalsIgnoreCase("join")) {
@@ -98,8 +176,7 @@ public class ServerWorker implements Runnable {
                     if (!args.contains("`")) {
                         
                         server.getChatroom(args).addUser(user);
-                        user.getOutputWriter()
-                            .println("You joined chatroom: " + args);
+                        server.notifyAllContacts(user);
                         
                     } else {
                         user.getOutputWriter().println("Usage: join [chat]");
@@ -113,6 +190,14 @@ public class ServerWorker implements Runnable {
                         server.getChatroom(messageArgs[0])
                             .sendMessage(user.getID(), messageArgs[1]);
                         
+                    }
+                    
+                } else if (command.equalsIgnoreCase("addcontact")) {
+                    
+                    if (args.matches("^\\w+$")) {
+                        user.addContact(args);
+                        writeContactList();
+                        server.printContactList(user);
                     }
                     
                 }

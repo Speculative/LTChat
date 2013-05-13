@@ -20,11 +20,14 @@ import org.apache.commons.codec.binary.Base64;
  *
  */
 public class Authenticator {
-    //TODO: Finish the Auth class
     /** User that we're trying to authenticate. */
     private User user;
     /** Needed to interact with the SQLite DB. */
     private Connection dbConnection;
+    /** Used to execute queries on the DB. */
+    private Statement query;
+    /** Each query may return a ResultSet. */
+    private ResultSet userSelect;
     
     /**
      * @param u User to authenticate
@@ -35,6 +38,7 @@ public class Authenticator {
             Class.forName("org.sqlite.JDBC");
             dbConnection =
                     DriverManager.getConnection("jdbc:sqlite:./LTChat.db");
+            query = dbConnection.createStatement();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (SQLException e) {
@@ -50,21 +54,17 @@ public class Authenticator {
      * @throws SQLException 
      */
     public User authenticate() throws IOException, SQLException {
-        //TODO: Protocol compliance
         try {
             
             //While we're still not logged in
             while (user.getID().isEmpty() && user.getInputReader().hasNext()) {
                 //Ask for login or register
                 String command = user.getInputReader().nextLine();
-                System.out.println("GOT SOME STUFF: " + command);
                 
                 if (command.matches("^\\w+`?.+$")) {
-                    System.out.println("Got to the login/register part");
+                    
                     String[] args = command.split("`");
-                    for (String s : args) {
-                        System.out.println(s);
-                    }
+                    
                     if (args[0].equalsIgnoreCase("login")) {
                         login(args[1], args[2]);
                     } else if (args[0].equalsIgnoreCase("register")) {
@@ -107,8 +107,7 @@ public class Authenticator {
                     throws SQLException,
                     UnsupportedEncodingException,
                     NoSuchAlgorithmException {
-        Statement query = dbConnection.createStatement();
-        ResultSet userSelect =
+        userSelect =
                 query.executeQuery(
                         "SELECT * FROM users WHERE lower(id)='"
                         + userID.toLowerCase()
@@ -158,34 +157,28 @@ public class Authenticator {
             throws SQLException,
             NoSuchAlgorithmException,
             IOException {
-        Statement query = dbConnection.createStatement();
-        ResultSet userSelect =
+        userSelect =
                 query.executeQuery(
                         "SELECT * FROM users WHERE lower(id)='"
                         + userID.toLowerCase()
                         + "';");
-        
-        String clientHash = passhash;
-        String storedHash = userSelect.getString("passhash");
-        String serverSalt = userSelect.getString("serversalt");
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        md.reset();
-        md.update((clientHash + serverSalt).getBytes("UTF-8"));
-        String computedHash =
-                new String(Base64.encodeBase64(md.digest()));
-        System.out.println("Computed Hash: " + computedHash);
-        
-        if (computedHash.equals(storedHash)) {
+        if (userSelect.next()) {
             
-            user.setID(userID);
-            user.getOutputWriter()
-                .println("Successfully Logged In");
+            String clientHash = passhash;
+            String storedHash = userSelect.getString("passhash");
+            String serverSalt = userSelect.getString("serversalt");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            md.reset();
+            md.update((clientHash + serverSalt).getBytes("UTF-8"));
+            String computedHash =
+                    new String(Base64.encodeBase64(md.digest()));
+            
+            if (computedHash.equals(storedHash)) {
+                user.setID(userID);
+            } 
             
         } else {
-            
-            user.getOutputWriter()
-                .println("Bad username or password");
-            
+            user.getOutputWriter().println("LOGIN`false");
         }
     }
     
@@ -195,14 +188,17 @@ public class Authenticator {
      * @throws SQLException DB error
      */
     private void reqsalt(final String userID) throws SQLException {
-        Statement query = dbConnection.createStatement();
-        ResultSet userSelect =
+        userSelect =
                 query.executeQuery(
                         "SELECT * FROM users WHERE lower(id)='"
                         + userID.toLowerCase()
                         + "';");
-        String salt = userSelect.getString("clientsalt");
-        user.getOutputWriter().println("REQSALT`" + salt);
+        if (userSelect.next()) {
+            String salt = userSelect.getString("clientsalt");
+            user.getOutputWriter().println("REQSALT`" + salt);
+        } else {
+            user.getOutputWriter().println("REQSALT`false");
+        }
     }
     
 }

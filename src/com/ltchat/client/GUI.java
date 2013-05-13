@@ -432,7 +432,7 @@ public class GUI extends javax.swing.JFrame {
             room = (String) mainChatroomList.getSelectedValue();
         }
         client.joinChat(room);
-        ChatTab chatroomPanel = new ChatTab(client, user);
+        ChatTab chatroomPanel = new ChatTab(client, room);
         tabs.add(chatroomPanel);
         mainChatTabbedPane.addTab(room, chatroomPanel);
     }//GEN-LAST:event_mainJoinChatButtonActionPerformed
@@ -447,7 +447,7 @@ public class GUI extends javax.swing.JFrame {
     }
 
     public void updateChats(String chats) {
-        mainChatroomList = new JList(chats.split("\\s"));
+        mainChatroomList.setListData(chats.split("\\s"));
     }
 
     public void updateContacts(String contacts) {
